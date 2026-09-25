@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Command Center</title>
+<style>
+:root{
+  --bg:#050609; --panel:#0d0f16; --panel-2:#12151f; --ink:#e8ecf5; --muted:#8b93a7; --faint:#5b6275; --line:#1e2230;
+  --line-glow:rgba(0,229,255,.18);
+  --side:#030407; --side-ink:#dfe6f5; --side-muted:#6d7690; --side-line:#161923; --side-hover:#0f1219;
+  --accent:#00e5ff; --accent-2:#a855ff; --accent-soft:#0d2630; --ok:#00ffb2; --ok-soft:#062018; --warn:#ffcc33;
+  --danger:#ff3d6e;
+  --p1:#00e5ff; --p2:#a855ff; --p3:#ff9466; --p4:#00ffb2;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 0 0 1px rgba(255,255,255,.02), 0 12px 32px -14px rgba(0,229,255,.12);
+  --radius:10px;
+  --mono:"JetBrains Mono","SF Mono","Cascadia Code",ui-monospace,Menlo,Consolas,monospace;
+  --grid-line:rgba(0,229,255,.05);
+}
+:root[data-theme="light"]{
+  --bg:#eef1f6; --panel:#ffffff; --panel-2:#f5f7fb; --ink:#0e1420; --muted:#4c5567; --faint:#8a93a6; --line:#d7dde8;
+  --line-glow:rgba(0,120,200,.15);
+  --side:#0c1220; --side-ink:#dfe6f5; --side-muted:#7885a3; --side-line:#1a2236; --side-hover:#121a2c;
+  --accent:#0077c2; --accent-2:#7b2fe0; --accent-soft:#e3f2fc; --ok:#00875f; --ok-soft:#e0f7ee; --warn:#b8860b;
+  --danger:#d6294f;
+  --p1:#0077c2; --p2:#7b2fe0; --p3:#e0672a; --p4:#00875f;
+  --shadow:0 1px 2px rgba(20,30,50,.06), 0 12px 28px -14px rgba(20,30,50,.14);
+  --grid-line:rgba(0,120,200,.06);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){ *{animation:none!important;transition:none!important} }
+body{margin:0;background:
+    linear-gradient(var(--grid-line) 1px, transparent 1px) 0 0/38px 38px,
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px) 0 0/38px 38px,
+    var(--bg);
+  color:var(--ink);font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--accent)}
+button{font-family:inherit}
+h1,h2,h3,h4,.brand,.hero-week,.section-title,.navlink,.wk-time,.chip,.hero-badge span,.ring-meta span,.kcol h4,.streak,.topbar .meta{font-family:var(--mono)}
+.section-title,.hero-week,.chip,.kcol h4{letter-spacing:.09em}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+@keyframes scan{0%{background-position:0 0}100%{background-position:0 -38px}}
+
+/* ---- layout ---- */
+.shell{display:flex;min-height:100vh}
+.side{width:254px;flex:none;background:var(--side);color:var(--side-ink);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto;z-index:20;border-right:1px solid var(--side-line);box-shadow:1px 0 24px -8px rgba(0,229,255,.06)}
+.side-head{padding:20px 18px 14px;border-bottom:1px solid var(--side-line)}
+.brand{display:flex;align-items:center;gap:9px;font-weight:750;font-size:14px;letter-spacing:.04em;text-transform:uppercase}
+.brand .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px 2px var(--accent);animation:pulse 2.2s ease-in-out infinite}
+.brand-sub{color:var(--side-muted);font-size:11px;margin-top:6px;font-family:var(--mono);letter-spacing:.03em}
+.brand-sub::before{content:"// ";color:var(--accent)}
+.side-ring{display:flex;align-items:center;gap:12px;padding:16px 18px;border-bottom:1px solid var(--side-line)}
+.ring{width:52px;height:52px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;position:relative;filter:drop-shadow(0 0 6px rgba(0,229,255,.45))}
+.ring svg{transform:rotate(-90deg)}
+.ring b{position:absolute;font-size:11.5px;font-weight:750;font-family:var(--mono);color:var(--accent)}
+.ring-meta b{display:block;font-size:19px;line-height:1.15;font-family:var(--mono);color:var(--side-ink)}
+.ring-meta span{font-size:10.5px;color:var(--side-muted);letter-spacing:.05em}
+nav.navlist{padding:10px 10px;display:flex;flex-direction:column;gap:2px}
+.navlink{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:7px;color:var(--side-muted);text-decoration:none;font-size:11.5px;font-weight:650;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;border:none;border-left:2px solid transparent;background:none;text-align:left;width:100%;transition:border-color .15s,color .15s}
+.navlink:hover{background:var(--side-hover);color:var(--side-ink)}
+.navlink.active{background:var(--side-hover);color:var(--accent);border-left-color:var(--accent);text-shadow:0 0 12px rgba(0,229,255,.35)}
+.navlink .ic{width:17px;text-align:center;font-size:14px;opacity:.9}
+.side-foot{margin-top:auto;padding:14px 18px 18px;border-top:1px solid var(--side-line);display:flex;flex-direction:column;gap:8px}
+.side-btns{display:flex;gap:6px;flex-wrap:wrap}
+.sbtn{border:1px solid var(--side-line);background:var(--side-hover);color:var(--side-ink);border-radius:8px;padding:6px 9px;font-size:11.5px;cursor:pointer;font-weight:600}
+.sbtn:hover{border-color:var(--accent)}
+.streak{font-size:11.5px;color:var(--side-muted)}
+
+.main{flex:1;min-width:0}
+.topbar{position:sticky;top:0;z-index:10;background:color-mix(in srgb, var(--bg) 82%, transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.topbar h1{font-size:14px;margin:0;letter-spacing:.06em;text-transform:uppercase;color:var(--ink)}
+.topbar h1::before{content:"> ";color:var(--accent)}
+.topbar .meta{color:var(--muted);font-size:11.5px;margin-top:3px;letter-spacing:.02em}
+.top-actions{display:flex;gap:8px;align-items:center}
+.content{padding:24px 28px 90px;max-width:1180px}
+.view{display:none}
+.view.active{display:block}
+
+/* ---- misc components ---- */
+.btn{border:1px solid var(--line);background:var(--panel-2);color:var(--ink);border-radius:7px;padding:8px 13px;font-size:12.5px;font-family:var(--mono);letter-spacing:.03em;cursor:pointer;font-weight:600;transition:border-color .15s,box-shadow .15s}
+.btn:hover{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent), 0 0 14px -2px var(--accent)}
+.btn.primary{background:linear-gradient(135deg,var(--accent),var(--accent-2));border-color:transparent;color:#04121a;font-weight:750}
+.btn.ghost{background:transparent}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:750;padding:2px 8px;border-radius:4px;letter-spacing:.08em;border:1px solid currentColor}
+.chip.build{color:var(--accent-2);background:color-mix(in srgb, var(--accent-2) 12%, transparent)}
+.chip.understand{color:var(--accent);background:color-mix(in srgb, var(--accent) 12%, transparent)}
+.chip.apply{color:var(--p3);background:color-mix(in srgb, var(--p3) 14%, transparent)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);position:relative}
+.card::before,.card::after{content:"";position:absolute;width:9px;height:9px;border-color:var(--line-glow);pointer-events:none}
+.card::before{top:-1px;left:-1px;border-top:1.5px solid var(--accent);border-left:1.5px solid var(--accent);border-top-left-radius:3px;opacity:.55}
+.card::after{bottom:-1px;right:-1px;border-bottom:1.5px solid var(--accent-2);border-right:1.5px solid var(--accent-2);border-bottom-right-radius:3px;opacity:.55}
+.section-title{font-size:13px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:750;margin:0 0 10px}
+h2.h{font-size:20px;margin:0 0 4px;letter-spacing:-.01em}
+p.lead{color:var(--muted);margin:0 0 18px;max-width:70ch;font-size:14px}
+
+/* ---- dashboard ---- */
+.dash-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:16px;margin-bottom:18px}
+@media (max-width:920px){.dash-grid{grid-template-columns:1fr}}
+.hero{padding:22px 24px;position:relative;overflow:hidden;border-color:var(--line-glow)}
+.hero::before{content:"";position:absolute;inset:0;background:radial-gradient(600px 220px at 100% 0%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%),radial-gradient(500px 200px at 0% 100%, color-mix(in srgb, var(--accent-2) 12%, transparent), transparent 70%)}
+.hero-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;position:relative}
+.hero-week{font-size:11.5px;font-weight:750;color:var(--accent);text-transform:uppercase;letter-spacing:.09em}
+.hero-title{font-size:22px;font-weight:750;margin:5px 0 6px;letter-spacing:-.01em;position:relative}
+.hero-goal{color:var(--muted);font-size:13.5px;max-width:56ch;position:relative}
+.hero-badge{background:var(--panel-2);border:1px solid var(--accent);border-radius:8px;padding:8px 12px;text-align:center;min-width:84px;position:relative;box-shadow:0 0 16px -4px var(--accent)}
+.hero-badge b{display:block;font-size:18px;font-family:var(--mono);color:var(--accent)}
+.hero-badge span{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.strip{display:grid;grid-template-columns:repeat(12,1fr);gap:5px;margin-top:18px;position:relative}
+.strip a{display:block;height:26px;border-radius:4px;background:var(--line);cursor:pointer;border:1px solid transparent;padding:0;position:relative;transition:transform .1s}
+.strip a:hover{transform:translateY(-2px)}
+.strip a b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:750;font-family:var(--mono);color:var(--bg)}
+.strip a.cur{outline:2px solid var(--accent);outline-offset:1px;box-shadow:0 0 10px -1px var(--accent)}
+
+.kanban{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+@media (max-width:820px){.kanban{grid-template-columns:1fr 1fr}}
+@media (max-width:520px){.kanban{grid-template-columns:1fr}}
+.kcol{padding:14px}
+.kcol h4{margin:0 0 10px;font-size:12px;text-transform:uppercase;letter-spacing:.06em;display:flex;align-items:center;gap:6px}
+.kcol h4 .n{margin-left:auto;background:var(--panel-2);border-radius:99px;padding:1px 7px;font-size:10.5px;color:var(--muted)}
+.k-learn h4{color:var(--p1)} .k-practice h4{color:var(--p2)} .k-build h4{color:var(--p3)} .k-apply h4{color:var(--p4)}
+
+.side-cards{display:flex;flex-direction:column;gap:16px}
+.mini-card{padding:16px}
+.mini-card h4{margin:0 0 10px;font-size:13px}
+.gauge-row{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.gauge-row:last-child{margin-bottom:0}
+.gauge-row .lbl{flex:1;font-size:13px}
+.gauge-row .val{font-size:12.5px;color:var(--muted);min-width:54px;text-align:right}
+.pbar{height:6px;border-radius:3px;background:var(--line);overflow:hidden;flex:2}
+.pbar>i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-2));width:0;transition:width .3s;box-shadow:0 0 6px 0 var(--accent)}
+.pbar.ok>i{background:var(--ok);box-shadow:0 0 6px 0 var(--ok)}
+
+/* ---- roadmap / weeks ---- */
+.phase-head{display:flex;align-items:center;gap:10px;margin:28px 0 12px}
+.phase-head:first-child{margin-top:0}
+.phase-dot{width:9px;height:9px;border-radius:3px}
+.phase-head h3{margin:0;font-size:15px}
+.phase-head span{color:var(--muted);font-size:12.5px}
+
+details.week{border:1px solid var(--line);border-radius:var(--radius);margin:10px 0;background:var(--panel);box-shadow:var(--shadow);overflow:hidden}
+details.week[open]{border-color:var(--line-glow)}
+details.week.current{outline:1px solid var(--accent);outline-offset:0;box-shadow:0 0 0 1px var(--accent), 0 0 20px -6px var(--accent)}
+summary{list-style:none;cursor:pointer;padding:15px 18px;display:flex;align-items:center;gap:14px}
+summary::-webkit-details-marker{display:none}
+.wk-badge{width:38px;height:38px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:#04121a;flex:none;font-family:var(--mono);box-shadow:0 0 14px -3px currentColor}
+.wk-mid{flex:1;min-width:0}
+.wk-mid .t{font-weight:700;font-size:14.5px}
+.wk-mid .g{color:var(--muted);font-size:12.5px;margin-top:2px}
+.wk-right{display:flex;align-items:center;gap:10px;flex:none}
+.wk-time{font-size:10.5px;color:var(--faint);white-space:nowrap;letter-spacing:.03em}
+.wk-prog{width:90px}
+.wk-prog .pbar{margin-top:4px}
+.wk-prog small{font-size:11px;color:var(--muted)}
+.chev{color:var(--faint);transition:transform .2s;font-size:12px}
+details[open] .chev{transform:rotate(90deg)}
+
+.wk-body{padding:0 18px 20px;border-top:1px solid var(--line)}
+.wk-tabs{display:flex;gap:4px;padding:14px 0 10px;flex-wrap:wrap}
+.wk-tab{border:1px solid var(--line);background:var(--panel-2);color:var(--muted);border-radius:6px;padding:6px 11px;font-size:11px;font-weight:650;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;font-family:var(--mono)}
+.wk-tab.on{background:var(--accent);color:#04121a;border-color:var(--accent);box-shadow:0 0 12px -3px var(--accent)}
+.wk-pane{display:none}
+.wk-pane.on{display:block}
+.li-row{display:flex;gap:9px;align-items:flex-start;padding:6px 0;border-bottom:1px dashed var(--line)}
+.li-row:last-child{border-bottom:none}
+.li-row input{margin-top:4px;width:16px;height:16px;accent-color:var(--accent);flex:none}
+.li-text{font-size:13.5px;flex:1}
+.li-row.done .li-text{color:var(--faint);text-decoration:line-through}
+.proj-box{background:linear-gradient(135deg, color-mix(in srgb, var(--p3) 10%, transparent), transparent);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin:6px 0 12px}
+.proj-box b{font-size:14px}
+.proj-box p{margin:4px 0 0;font-size:13px;color:var(--muted)}
+.res-list a{font-size:13px}
+.res-list li{margin:5px 0}
+.res-note{color:var(--muted);font-size:12px}
+.deliver-box{background:var(--ok-soft);border:1px solid color-mix(in srgb, var(--ok) 35%, transparent);border-radius:10px;padding:10px 14px;margin-top:4px}
+.deliver-box b{font-size:12px;color:var(--ok);text-transform:uppercase;letter-spacing:.05em}
+.meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:10px 0 4px}
+.meta-grid .m b{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:3px}
+.meta-grid .m span{font-size:13px}
+textarea.notes{width:100%;min-height:64px;border:1px solid var(--line);background:var(--panel-2);color:var(--ink);border-radius:9px;padding:10px;font:inherit;font-size:13px;resize:vertical}
+
+/* quiz */
+.quiz-wrap{margin-top:6px}
+.qcard{border:1px solid var(--line);border-radius:10px;padding:13px 14px;margin:8px 0;background:var(--panel-2)}
+.qcard .qn{font-size:13px;font-weight:650;margin-bottom:9px}
+.opt{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:7px;border:1px solid var(--line);margin:5px 0;cursor:pointer;font-size:13px;background:var(--panel)}
+.opt:hover{border-color:var(--accent)}
+.opt input{accent-color:var(--accent)}
+.opt.correct{border-color:var(--ok);background:var(--ok-soft);box-shadow:0 0 10px -3px var(--ok)}
+.opt.wrong{border-color:var(--danger);background:color-mix(in srgb, var(--danger) 14%, var(--panel));box-shadow:0 0 10px -3px var(--danger)}
+.qexplain{display:none;font-size:12.5px;color:var(--muted);margin-top:7px;padding-top:7px;border-top:1px dashed var(--line)}
+.qexplain.show{display:block}
+.quiz-score{display:flex;align-items:center;gap:10px;margin-top:10px}
+.quiz-score b{font-size:15px}
+
+/* generic content pages */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:12px}
+.card.pad{padding:15px 17px}
+.card.pad h3{margin:0 0 6px;font-size:15px}
+.card.pad ul{margin:6px 0 0;padding-left:18px}
+.card.pad li{margin:4px 0;font-size:13.5px}
+.card.pad p{font-size:13.5px;color:var(--muted);margin:4px 0 0}
+.ladder{counter-reset:l}
+.ladder .card{position:relative;padding:15px 17px 15px 54px}
+.ladder .card::before{counter-increment:l;content:counter(l);position:absolute;left:14px;top:14px;width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;font-weight:750;display:flex;align-items:center;justify-content:center;font-size:13px}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th,td{text-align:left;vertical-align:top;padding:10px 12px;border-bottom:1px solid var(--line)}
+th{background:var(--panel-2);font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+tr:last-child td{border-bottom:none}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius)}
+.scroll table{border:none}
+.note-block{font-size:13px;color:var(--muted);background:var(--panel-2);border:1px dashed var(--line);border-radius:10px;padding:10px 13px;margin-top:14px}
+footer.pagefoot{margin-top:36px;color:var(--faint);font-size:12px}
+@media (max-width:860px){
+  .side{position:fixed;left:-260px;transition:left .2s;box-shadow:var(--shadow)}
+  .side.open{left:0}
+  .content{padding:20px 16px 90px}
+  .topbar{padding:12px 16px}
+  .menubtn{display:inline-flex!important}
+}
+.menubtn{display:none;border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:7px 10px;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<aside class="side" id="side">
+  <div class="side-head">
+    <div class="brand"><span class="dot"></span>AI Command Center</div>
+    <div class="brand-sub">Data Scientist &rarr; AI Solutions Engineer / FDE</div>
+  </div>
+  <div class="side-ring">
+    <div class="ring">
+      <svg width="52" height="52"><circle cx="26" cy="26" r="22" stroke="#2b2e39" stroke-width="5" fill="none"/><circle id="ringFg" cx="26" cy="26" r="22" stroke="url(#g1)" stroke-width="5" fill="none" stroke-linecap="round" stroke-dasharray="138" stroke-dashoffset="138"/><defs><linearGradient id="g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#8686ff"/><stop offset="100%" stop-color="#ff9466"/></linearGradient></defs></svg>
+      <b id="ringPct">0%</b>
+    </div>
+    <div class="ring-meta"><b id="sideDone">0/0</b><span>tasks complete</span></div>
+  </div>
+  <nav class="navlist">
+    <button class="navlink active" data-view="dashboard"><span class="ic">&#9673;</span>Dashboard</button>
+    <button class="navlink" data-view="roadmap"><span class="ic">&#9776;</span>12-Week Roadmap</button>
+    <button class="navlink" data-view="ladder"><span class="ic">&#9650;</span>Autonomy Ladder</button>
+    <button class="navlink" data-view="cheat"><span class="ic">&#9670;</span>Concepts &amp; Cheatsheet</button>
+    <button class="navlink" data-view="roles"><span class="ic">&#9733;</span>Roles &amp; Pivot</button>
+  </nav>
+  <div class="side-foot">
+    <div class="streak" id="streakLine">Set a start date to begin tracking</div>
+    <div class="side-btns">
+      <button class="sbtn" id="theme">Theme</button>
+      <button class="sbtn" id="export">Export</button>
+      <label class="sbtn" style="cursor:pointer">Import<input id="import" type="file" accept="application/json" hidden></label>
+      <button class="sbtn" id="reset">Reset</button>
+    </div>
+  </div>
+</aside>
+
+<div class="main">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:10px">
+      <button class="menubtn" id="menubtn">&#9776;</button>
+      <div>
+        <h1 id="topTitle">Dashboard</h1>
+        <div class="meta" id="topMeta">Your AI-native learning operating system</div>
+      </div>
+    </div>
+    <div class="top-actions">
+      <label style="font-size:12.5px;color:var(--muted)">Start date&nbsp;<input type="date" id="start" style="border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;padding:6px 8px;font:inherit;font-size:13px"></label>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- DASHBOARD -->
+    <section class="view active" id="view-dashboard">
+      <div class="dash-grid">
+        <div class="card hero">
+          <div class="hero-top">
+            <div>
+              <div class="hero-week" id="dashWeekLabel">Week 1 &middot; Foundations</div>
+              <div class="hero-title" id="dashWeekTitle">-</div>
+              <div class="hero-goal" id="dashWeekGoal">-</div>
+            </div>
+            <div class="hero-badge"><b id="dashWeekPct">0%</b><span>this week</span></div>
+          </div>
+          <div class="strip" id="dashStrip"></div>
+        </div>
+        <div class="side-cards">
+          <div class="card mini-card">
+            <h4>Overall progress</h4>
+            <div class="gauge-row"><div class="lbl">Tasks completed</div><div class="pbar"><i id="gAll"></i></div><div class="val" id="gAllVal">0%</div></div>
+            <div class="gauge-row"><div class="lbl">Weeks finished</div><div class="pbar ok"><i id="gWeeks"></i></div><div class="val" id="gWeeksVal">0/12</div></div>
+            <div class="gauge-row"><div class="lbl">Quiz average</div><div class="pbar" style="background:var(--line)"><i id="gQuiz" style="background:var(--p2)"></i></div><div class="val" id="gQuizVal">-</div></div>
+          </div>
+          <div class="card mini-card">
+            <h4>This week's quiz</h4>
+            <div id="dashQuizSummary" style="font-size:13px;color:var(--muted)">Complete the week's work, then test yourself.</div>
+            <button class="btn primary" style="margin-top:10px;width:100%" id="dashQuizBtn">Go to quiz</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-title">This week &middot; Learn &rarr; Practice &rarr; Build &rarr; Apply</div>
+      <div class="kanban" id="dashKanban"></div>
+
+      <div class="section-title" style="margin-top:22px">Weekly reflection</div>
+      <div class="card" style="padding:15px 17px">
+        <textarea class="notes" id="dashReflection" placeholder="What clicked this week? What's blocking you? What will you change next week?"></textarea>
+      </div>
+    </section>
+
+    <!-- ROADMAP -->
+    <section class="view" id="view-roadmap">
+      <h2 class="h">12-Week Roadmap</h2>
+      <p class="lead">Reallocated for a Data Scientist &rarr; AI Solutions Engineer / FDE pivot. ~10-14 hrs/week. Each week follows Learn &rarr; Practice &rarr; Build &rarr; Apply, ends with a 5-question check, and ships something to GitHub.</p>
+      <div class="controls" style="display:flex;gap:8px;margin-bottom:14px">
+        <button class="btn" id="expand">Expand all</button>
+        <button class="btn" id="collapse">Collapse all</button>
+      </div>
+      <div id="weeks"></div>
+    </section>
+
+    <!-- LADDER -->
+    <section class="view" id="view-ladder">
+      <h2 class="h">Claude Code / Codex Autonomy Ladder</h2>
+      <p class="lead">The shift is from "ask and copy-paste" to "write a spec, delegate, verify." Climb one rung at a time.</p>
+      <div class="cards ladder">
+        <div class="card"><h3>Chat (baseline)</h3><p>Ask questions, paste code, copy answers. Useful, but the tool never touches your files or runs anything.</p></div>
+        <div class="card"><h3>Read-and-explain in your repo</h3><ul><li>Open a project and ask it to map the codebase or explain a script.</li><li>Use plan mode: it proposes edits, you approve.</li><li>Exercise: have it explain every command before you allow it.</li></ul></div>
+        <div class="card"><h3>Delegate one bounded task</h3><ul><li>Give a written spec plus an acceptance test.</li><li>Review the diff like a colleague's pull request.</li><li>Exercise: fix a bug from a failing test.</li></ul></div>
+        <div class="card"><h3>Teach it your project</h3><ul><li>Write CLAUDE.md / AGENTS.md.</li><li>Create a reusable skill for a repeated procedure.</li><li>Add custom slash commands and hooks.</li></ul></div>
+        <div class="card"><h3>Run several workers</h3><ul><li>Parallel sessions in separate git worktrees.</li><li>Subagents for research or review so your main context stays clean.</li></ul></div>
+        <div class="card"><h3>Automate without you</h3><ul><li>Headless mode inside scripts, cron, or GitHub Actions.</li><li>Agent produces a report or PR on a schedule, pauses for approval on anything external.</li></ul></div>
+      </div>
+      <div class="section-title" style="margin-top:26px">Habits that unlock the most power</div>
+      <div class="cards">
+        <div class="card pad"><h3>Spec before code</h3><p>Goal, inputs, outputs, constraints, how to verify — in 10 lines, before you ask for anything.</p></div>
+        <div class="card pad"><h3>Give it a way to check itself</h3><p>Tests, linters, sample inputs. Agents improve dramatically when they can run a check and iterate.</p></div>
+        <div class="card pad"><h3>Small commits, always</h3><p>Commit before each delegated task so a bad result is one command from undone.</p></div>
+        <div class="card pad"><h3>Manage context deliberately</h3><p>Clear between unrelated tasks, keep instruction files short.</p></div>
+        <div class="card pad"><h3>Use both tools, compare</h3><p>Same spec into Claude Code and Codex — diff the results to learn each tool's strengths fast.</p></div>
+        <div class="card pad"><h3>Keep a failure log</h3><p>Where it went wrong, and what instruction would've prevented it. Becomes your best CLAUDE.md.</p></div>
+      </div>
+    </section>
+
+    <!-- CHEATSHEET -->
+    <section class="view" id="view-cheat">
+      <h2 class="h">Concepts &amp; Cheatsheet</h2>
+      <p class="lead">No derivations, no model-training theory — just enough to reason about systems and talk to an interviewer.</p>
+
+      <div class="section-title">Token efficiency</div>
+      <div class="cards">
+        <div class="card pad"><h3>What a token is</h3><p>A chunk of ~3-4 characters. Code and non-English text often cost more per idea. Output tokens usually cost more than input.</p></div>
+        <div class="card pad"><h3>Spend fewer</h3><ul><li>Send only what the task needs; retrieve, don't paste whole docs.</li><li>Ask for structured, capped output.</li><li>Route easy steps to a small model.</li></ul></div>
+        <div class="card pad"><h3>Reuse more</h3><ul><li>Stable content first in the prompt (caching).</li><li>Batch non-urgent jobs.</li><li>Cache repeated identical calls yourself.</li></ul></div>
+        <div class="card pad"><h3>Waste to avoid</h3><ul><li>Re-sending giant context with no caching.</li><li>Agent loops with no stopping condition.</li><li>Raw tool output dumped into context.</li></ul></div>
+      </div>
+
+      <div class="section-title" style="margin-top:22px">The engineering stack</div>
+      <div class="scroll"><table>
+        <tr><th>Layer</th><th>Question it answers</th><th>When it matters</th></tr>
+        <tr><td><b>Prompt engineering</b></td><td>What should I tell the model, this one time?</td><td>Every single call.</td></tr>
+        <tr><td><b>Context engineering</b></td><td>What information should the model have at all?</td><td>RAG, agents — usually where quality is won or lost.</td></tr>
+        <tr><td><b>Specification engineering</b></td><td>What exactly should the system accomplish, and how do we know it worked?</td><td>Delegating to a coding agent.</td></tr>
+        <tr><td><b>Agent engineering</b></td><td>How should the system plan, act, and stop?</td><td>Anything multi-step.</td></tr>
+        <tr><td><b>Harness engineering</b></td><td>What guides and sensors keep the agent on track?</td><td>Making agents reliable and repeatable.</td></tr>
+        <tr><td><b>Eval engineering</b></td><td>How do we prove a change made it better?</td><td>Always — separates demos from products.</td></tr>
+      </table></div>
+
+      <div class="section-title" style="margin-top:22px">Just enough math intuition</div>
+      <div class="cards">
+        <div class="card pad"><h3>Next-token prediction</h3><p>The model outputs a probability for every possible next token, picks one, repeats.</p></div>
+        <div class="card pad"><h3>Embeddings</h3><p>Text as coordinates so similar meanings sit close together. Cosine similarity measures "how close."</p></div>
+        <div class="card pad"><h3>Attention</h3><p>For each token, the model weighs which earlier tokens matter most — a weighted lookup.</p></div>
+        <div class="card pad"><h3>Why hallucination happens</h3><p>Trained for plausible text, not verified truth. Grounding, citations, and evals are the mitigation.</p></div>
+      </div>
+
+      <div class="section-title" style="margin-top:22px">What is a skill? (Claude Code / Codex)</div>
+      <div class="cards">
+        <div class="card pad"><h3>What it is</h3><p>A packaged, reusable set of instructions (and optionally scripts) the agent loads on demand instead of you re-explaining a procedure every session.</p></div>
+        <div class="card pad"><h3>When to create one</h3><p>Any time you catch yourself repeating the same instructions across sessions — a report format, a review checklist, a data-cleaning convention.</p></div>
+        <div class="card pad"><h3>How to create one</h3><p>Write a SKILL.md: what it's for, when to trigger, step-by-step instructions, any helper scripts. Keep it scoped to one procedure.</p></div>
+        <div class="card pad"><h3>How to use one</h3><p>The agent can auto-load it when relevant, or you invoke it by name. Test that it actually triggers on the cases you intended.</p></div>
+      </div>
+    </section>
+
+    <!-- ROLES -->
+    <section class="view" id="view-roles">
+      <h2 class="h">Roles &amp; the Pivot</h2>
+      <p class="lead">Comparing adjacent role types so you can target with evidence, not guesswork.</p>
+      <div class="scroll"><table>
+        <tr><th>Role</th><th>What you do</th><th>Strong fit if</th><th>Evidence to show</th></tr>
+        <tr><td><b>Forward Deployed Engineer</b></td><td>Embed with customers, scope ambiguous problems, ship production code in their environment, own incidents, feed learnings to product.</td><td>You like customer contact, ambiguity, shipping fast.</td><td>Discovery doc, architecture doc, timeboxed POC + demo, results memo.</td></tr>
+        <tr><td><b>AI Solutions Engineer</b></td><td>Pre/post-sales technical design, POCs, demos, integration work.</td><td>You communicate well and like variety.</td><td>Demos, architecture write-ups, ROI framing.</td></tr>
+        <tr><td><b>Applied AI Engineer</b></td><td>Build and productionize LLM features: RAG, agents, evals, monitoring.</td><td>You enjoy building and measuring systems.</td><td>Evals, logging/cost work, a deployed app.</td></tr>
+        <tr><td><b>AI Product Manager</b></td><td>Define what to build, success metrics, tradeoffs.</td><td>You lean toward strategy and stakeholders.</td><td>Product specs, eval rubrics, pilot proposals with results.</td></tr>
+        <tr><td><b>AI/DS Manager</b></td><td>Lead a team applying ML/LLMs to business problems.</td><td>Your data-science + domain expertise carries weight.</td><td>Team-relevant pilots, governance notes, measurable impact.</td></tr>
+      </table></div>
+      <div class="section-title" style="margin-top:22px">Portfolio narrative</div>
+      <div class="card pad">
+        <p style="margin:0"><b>Aim for:</b> "A data scientist with real pharma/business-domain expertise who can now design, build, evaluate, and deploy modern AI solutions."<br><b>Avoid:</b> "I completed a bunch of AI tutorials." Every project ships with a README, architecture note, demo, and eval results — not toy volume.</p>
+      </div>
+    </section>
+
+    <footer class="pagefoot">Progress, notes, and quiz scores are saved in this browser (localStorage). Use Export to back them up or move them between devices.</footer>
+  </div>
+</div>
+</div>
+
+<script>
+/* ============ DATA ============ */
+const PHASES = {
+  1:{name:"Foundations",color:"var(--p1)",weeks:"Weeks 1-3"},
+  2:{name:"Agentic Coding & Knowledge Systems",color:"var(--p2)",weeks:"Weeks 4-7"},
+  3:{name:"Agents & Harness Engineering",color:"var(--p3)",weeks:"Weeks 8-9"},
+  4:{name:"Production & The Pivot",color:"var(--p4)",weeks:"Weeks 10-12"}
+};
+// tag format: "TAG::text"  TAG in UNDERSTAND/BUILD/APPLY
+function tagOf(s){ const i=s.indexOf("::"); return i<0? {tag:"",text:s} : {tag:s.slice(0,i),text:s.slice(i+2)}; }
+
+const WEEKS = [
+{n:1,p:1,title:"LLM Foundations & Model Mental Models",goal:"Explain how an LLM works to a technical interviewer, no hand-waving, no derivations.",time:"~8-10 hrs",career:"Table-stakes fluency for any AI conversation.",portfolio:"GitHub repo created; explainer doc; token-lab with README.",
+ learn:["UNDERSTAND::Next-token prediction: what the model actually does","UNDERSTAND::Tokens: what they are, why code/non-English text costs more","UNDERSTAND::Context windows, and why long context costs more","UNDERSTAND::Input vs output pricing, prompt caching basics","UNDERSTAND::Temperature/sampling, reasoning models vs standard LLMs","UNDERSTAND::Embeddings & attention at a conceptual level only","UNDERSTAND::Why models hallucinate"],
+ practice:["Install and verify both Claude Code and Codex","Learn Git through the agent: init, branch, commit, push, PR — have it explain each command before running","Write your first CLAUDE.md (build/test commands, conventions, do-nots)","Use plan mode before allowing any edit"],
+ build:{title:"Token Lab (Python CLI)",desc:"Measure token use and cost so efficiency becomes concrete, not theoretical.",steps:["Count tokens across 5 of your own non-sensitive documents","Estimate cost per model for each","Compare a verbose vs. tight prompt for the same task","Write findings in a README"]},
+ apply:["WORK::List 10 recurring work tasks, tag each as AI-drafts / AI-checks / human-only","LIFE::Write a one-page 'how LLMs work' explainer in your own words — this is your interview-prep artifact"],
+ deliver:["GitHub repo created, this tracker committed as index.html (via Claude Code)","token-lab/ folder with README of findings"],
+ res:[{t:"Anthropic Academy — Introduction to LLMs (free)",u:"https://anthropic.skilljar.com",note:"Right conceptual depth, no cert needed."},{t:"OpenAI tokenizer",u:"https://platform.openai.com/tokenizer"}],
+ quiz:[
+  {q:"What does an LLM fundamentally do at each generation step?",o:["Retrieves the exact answer from a database","Predicts a probability distribution over the next token","Executes explicit if/else rules","Looks up an embeddings dictionary"],c:1,e:"Everything else (chat, agents, tools) is built on repeated next-token prediction."},
+  {q:"Why does non-English text or code often use more tokens per idea than English prose?",o:["Tokenizers are trained mostly on common English patterns, so unfamiliar text splits into more pieces","The model runs a hidden translation step first","Code always includes hidden metadata tokens","Non-English languages use larger whole-word tokens"],c:0,e:"Tokenizer vocabularies are shaped by training data frequency, not by any language being inherently 'harder.'"},
+  {q:"Input tokens and output tokens are:",o:["Priced identically always","Priced separately, output usually costs more","Free up to a quota then billed the same","Never billed separately by any provider"],c:1,e:"This matters for cost control — capping output length is one of the cheapest ways to save money."},
+  {q:"Prompt caching primarily helps you save cost/latency when:",o:["You change your entire prompt every request","You reuse the exact same stable prefix (instructions/docs) across many calls","You use a smaller model","You disable streaming"],c:1,e:"Caching discounts apply to a reused, unchanged prefix — put stable content first."},
+  {q:"Why do LLMs hallucinate?",o:["They intentionally lie when uncertain","They're trained to produce plausible-sounding text, not verified truth, so ungrounded claims can look fluent","Only old models hallucinate","Only at temperature = 0"],c:1,e:"Grounding in retrieved sources, citations, and evals are the practical mitigations you'll build in later weeks."}
+ ]},
+
+{n:2,p:1,title:"Prompt, Context & Specification Engineering",goal:"Distinguish and apply three separate skills: prompt, context, and specification engineering.",time:"~10 hrs",career:"The literal skill FDEs use to scope AI work with customers.",portfolio:"prompts/ repo with results table.",
+ learn:["UNDERSTAND::Prompt engineering: what to tell the model this one time","UNDERSTAND::Context engineering: what information the model should have at all","UNDERSTAND::Specification engineering: what exactly to accomplish, and how success is verified","UNDERSTAND::Few-shot examples, structured/XML prompting, instruction hierarchy","UNDERSTAND::Context compression, prompt caching, long-context tradeoffs","UNDERSTAND::Prompt injection basics"],
+ practice:["Write the harness spec yourself (goal, inputs, outputs, how to verify), then let the agent implement it","Review the diff before accepting; ask the agent to justify anything unclear","Practice clearing context between unrelated tasks"],
+ build:{title:"Prompt/context A-B evaluation harness",desc:"Turn prompting from guesswork into measurement, on real tasks.",steps:["Pick 10 real work tasks (non-sensitive)","Write 2-3 prompt variants for each","Script logs tokens, cost, latency per variant","Score outputs with a rubric, pick winners"]},
+ apply:["WORK::Convert your 3 most repeated work prompts into tested templates","APPLY::Write 3 real specifications for Claude Code tasks, scored by whether the agent succeeds on the first try"],
+ deliver:["prompts/ folder with templates and a comparison table"],
+ res:[{t:"Claude prompt engineering docs",u:"https://docs.claude.com/en/docs/build-with-claude/prompt-engineering/overview"}],
+ quiz:[
+  {q:"Context engineering is best described as:",o:["Writing clever wording for a single instruction","Deciding what information enters the model's context window at all","Choosing a system-prompt persona","Optimizing GPU memory"],c:1,e:"Prompt engineering is the wording; context engineering is the material."},
+  {q:"Specification engineering differs from prompting because it focuses on:",o:["Tone of voice","Exactly what the system should accomplish and how success is verified","The visual theme of the UI","Which model vendor to use"],c:1,e:"This is what you write before delegating to a coding agent."},
+  {q:"Why put stable content (instructions, reference docs) at the start of a prompt?",o:["It looks nicer","It enables prompt caching discounts since fixed prefixes can be reused","Models ignore anything after position 1","It's required by every API"],c:1,e:"Same reasoning as Week 1's caching concept, now applied."},
+  {q:"A prompt injection risk mainly comes from:",o:["The model's training data being outdated","Untrusted content (e.g. a fetched webpage) containing instructions the model might unintentionally follow","Using too few examples","Running at high temperature only"],c:1,e:"This becomes critical once agents read external content — flagged again in Week 10."},
+  {q:"Good acceptance criteria for a coding-agent spec should:",o:["Be vague so the agent has creative freedom","Define a concrete, checkable condition for 'done' (e.g. a passing test)","Only describe UI colors","Be written after the agent finishes"],c:1,e:"Concrete, checkable criteria are what make delegation to an agent actually work."}
+ ]},
+
+{n:3,p:1,title:"AI Application Engineering",goal:"Understand the architecture of an LLM-backed application end to end.",time:"~10-12 hrs",career:"The engineering substrate everything else sits on.",portfolio:"App repo with README + architecture diagram.",
+ learn:["UNDERSTAND::Anthropic/OpenAI SDK basics, auth","UNDERSTAND::Structured outputs / JSON schemas","UNDERSTAND::Streaming, retries, timeouts, rate limits","UNDERSTAND::Provider abstraction, model selection","UNDERSTAND::Latency vs. quality vs. cost tradeoffs","UNDERSTAND::Multimodal models — what they accept/produce, when preferable to OCR/RAG (no dedicated project, you already use this daily)"],
+ practice:["Give the agent a written spec plus acceptance tests; have it write tests first","Use it to explain unfamiliar code in your own repo","Run the same task in Claude Code and Codex and compare"],
+ build:{title:"One small LLM application",desc:"Architecture matters more than the use case here — demonstrate the full pipeline, not a document analyzer.",steps:["User -> App -> Model -> Structured Output -> Error Handling -> Evaluation hook (stubbed, built out in Week 7)","Thin adapter so it works against both providers","Streaming responses","Tests for parsing and error paths"]},
+ apply:["WORK::Run the app on a real non-sensitive work scenario, note what it got wrong"],
+ deliver:["Repo with README, demo GIF, passing tests"],
+ res:[{t:"OpenAI Academy — API fundamentals (free)",u:"https://academy.openai.com"},{t:"Claude docs",u:"https://docs.claude.com"}],
+ quiz:[
+  {q:"In a typical LLM app architecture, structured output (JSON schema) is used to:",o:["Make responses shorter","Force the model's response into a predictable, parseable format your code can rely on","Reduce token cost to zero","Bypass authentication"],c:1,e:"Structured output is what lets the rest of your pipeline treat the model's answer like normal data."},
+  {q:"Retries with backoff are important because:",o:["They guarantee correctness","Transient API errors/rate limits are common; retrying improves reliability without hammering the API","They make responses more creative","Every SDK requires them by law"],c:1,e:"Reliability engineering, not a correctness fix."},
+  {q:"When should you prefer a smaller/cheaper model in your app?",o:["Never, always use the biggest model","For easy, high-volume subtasks (routing, extraction) where quality needs are lower","Only for image generation","Only when offline"],c:1,e:"Model routing by task difficulty is a core cost-control pattern, revisited in Week 10."},
+  {q:"Multimodal models accepting images directly is preferable to OCR+text-extraction when:",o:["Never, OCR is always better","Layout/visual context matters (charts, diagrams, handwriting) that plain extraction would lose","The document is pure plain text","You need guaranteed 100% accuracy"],c:1,e:"You already use this daily — the point here is knowing *when* it's the right tool, not proving it works."},
+  {q:"Storing API keys safely means:",o:["Hardcoding them in source and committing to GitHub","Using environment variables/.env files kept out of version control","Emailing them to yourself","Putting them in the README"],c:1,e:"Basic secrets hygiene — this comes up again, more formally, in Week 10's security section."}
+ ]},
+
+{n:4,p:2,title:"AI-Native Software Development",goal:"Learn how software development changes when AI agents become active engineering workers — not just 'learn Claude Code.'",time:"~14 hrs (heaviest week so far, deliberately)",career:"Directly answers 'how do you use AI coding agents effectively,' a core FDE screening question.",portfolio:"autonomy-ladder repo, failure journal, 2 custom commands.",
+ learn:["UNDERSTAND::The agent loop: read files, run commands, edit, test, repeat","UNDERSTAND::Plan -> execute -> verify; approving/denying actions safely","BUILD::CLAUDE.md / AGENTS.md as persistent project context","UNDERSTAND::What a skill is: a packaged, reusable instruction set the agent loads on demand","APPLY::When to create a skill: any procedure you'd otherwise repeat or re-prompt","UNDERSTAND::Subagents, hooks, permissions, sandboxing","UNDERSTAND::Headless mode, git worktrees, spec-driven development, human-in-the-loop"],
+ practice:["Write CLAUDE.md with build/test commands and conventions","Create 2 custom slash commands (e.g. /review, /weekly-report)","Run two sessions in parallel worktrees on separate tasks","Delegate one task to Codex and compare with Claude Code","Start a failure log: what broke, what instruction would've prevented it"],
+ build:{title:"The autonomy ladder (4 tasks)",desc:"Four progressively less-supervised tasks on a real repository, not a toy.",steps:["Fix a bug from a failing test","Implement a feature from a written spec with tests","Refactor via plan mode","Generate a weekly report in headless mode"]},
+ apply:["WORK::Automate one real recurring work chore end to end","LIFE::Automate the personal task you picked in Week 1"],
+ deliver:["autonomy-ladder/ folder with log.md","Two custom slash commands committed to the repo"],
+ res:[{t:"Anthropic — Claude Code best practices (free)",u:"https://code.claude.com/docs/en/best-practices"},{t:"AGENTS.md spec",u:"https://agents.md/"}],
+ quiz:[
+  {q:"A \"skill\" (e.g. SKILL.md) is best understood as:",o:["A new base model","A packaged, reusable set of instructions/scripts the agent can load on demand instead of you re-explaining each session","A GPU optimization setting","A required file for any Git repo"],c:1,e:"Introduced here conceptually; you'll actually author skills in Week 9."},
+  {q:"When should you create a new skill?",o:["For a one-time task you'll never repeat","When you find yourself repeating the same instructions/procedure across multiple sessions","Only when the agent asks for one","Never, skills are deprecated"],c:1,e:"The trigger is repetition, not novelty."},
+  {q:"CLAUDE.md / AGENTS.md files are used to:",o:["Store your API keys","Give the agent persistent project context: how to build/test, conventions, and things not to do","Replace the need for Git","Auto-deploy your app"],c:1,e:"This is the primary way you 'teach' the agent your project without re-explaining every session."},
+  {q:"\"Plan mode\" in an agentic coding tool is useful because:",o:["It skips testing entirely","It lets the agent propose a plan for you to review before it touches any files","It disables all safety checks","It only works offline"],c:1,e:"Review-before-edit is the core safety pattern of working with coding agents."},
+  {q:"Headless (non-interactive) mode is most useful for:",o:["Manual back-and-forth debugging sessions","Running the agent inside scripts, cron jobs, or CI without a human watching each step","Writing documentation only","Only image generation tasks"],c:1,e:"This is what makes a scheduled weekly report (Week 4's project) possible."}
+ ]},
+
+{n:5,p:2,title:"Information Retrieval & Knowledge Systems",goal:"Understand retrieval as one architecture among several, and when each applies — not 'RAG is the default.'",time:"~10 hrs",career:"FDEs need to pick the right architecture per client, not default to RAG.",portfolio:"Retrieval comparison repo with a written recommendation.",
+ learn:["UNDERSTAND::Keyword vs. semantic vs. hybrid search","UNDERSTAND::Embeddings, vector databases, chunking, metadata","UNDERSTAND::Reranking, recall@k, query rewriting","UNDERSTAND::Long-context retrieval","UNDERSTAND::Direct context vs long context vs RAG vs SQL/tool calls vs MCP vs external search — and when NOT to use RAG"],
+ practice:["Have the agent build the ingestion pipeline with tests","Use a subagent to review the chunking code","Ask the agent to draft 20 test queries; you decide correct answers"],
+ build:{title:"Retrieval architecture comparison",desc:"Not a first-contact demo — a comparison exercise on your own non-sensitive documents.",steps:["Try 2 retrieval strategies on the same corpus","Measure recall@5 for each on 20 queries you write","Write up which wins, and why"]},
+ apply:["WORK::Index your own methods/past analyses, see what a keyword-only search would have missed"],
+ deliver:["Retrieval comparison repo with recall@5 numbers and a written recommendation"],
+ res:[{t:"DeepLearning.AI — Vector Databases: from Embeddings to Applications (free, ~1.5 hrs)",u:"https://www.deeplearning.ai/courses/vector-databases-embeddings-applications"}],
+ quiz:[
+  {q:"Which is generally true about RAG vs. alternatives?",o:["RAG is always the best way to give a model knowledge","RAG is one option among several (direct context, long context, SQL/tool calls, MCP); the right choice depends on the use case","RAG replaces the need for any database","RAG requires no chunking"],c:1,e:"This is the whole point of Week 5 — picking the right architecture, not defaulting to one."},
+  {q:"Chunking documents matters because:",o:["It's required for billing purposes","Retrieval quality depends heavily on chunk size/overlap matching how information is naturally grouped","It reduces embedding dimensionality","It's only relevant for video files"],c:1,e:"Bad chunking is one of the most common causes of poor RAG results."},
+  {q:"recall@5 measures:",o:["How fast the model responds","Whether a relevant result appears within the top 5 retrieved results","The number of tokens used","Model temperature setting"],c:1,e:"Your core retrieval-quality metric for this week's project."},
+  {q:"When is long context preferable to RAG?",o:["Never","When the relevant material is small enough to fit entirely and doesn't change per-query, avoiding retrieval complexity","Only for images","Only when cost doesn't matter"],c:1,e:"Simplicity wins when you don't actually need selective retrieval."},
+  {q:"Hybrid search combines:",o:["Two different LLMs","Keyword (exact match) and semantic (meaning-based) search to catch both literal and conceptual matches","Two vector databases","Streaming and non-streaming responses"],c:1,e:"Useful when exact terms (product codes, names) matter alongside conceptual matches."}
+ ]},
+
+{n:6,p:2,title:"RAG & Knowledge Application",goal:"Build a production-minded RAG assistant, evaluated from day one, not just functional.",time:"~10 hrs",career:"The single most common FDE/AI-solutions-engineer deliverable in practice.",portfolio:"Working assistant, architecture diagram, first eval numbers.",
+ learn:["UNDERSTAND::Retrieve -> augment -> generate, applied","UNDERSTAND::Citations, grounding, honest 'I don't know'","UNDERSTAND::Access control basics","UNDERSTAND::Retrieval failure vs. hallucination","UNDERSTAND::Reranking and query rewriting, applied"],
+ practice:["Have the agent write an architecture doc first; review before any code","Build in slices with a commit per slice","Use plan mode for the reranking change"],
+ build:{title:"Production-minded RAG assistant",desc:"Citations and an eval hook wired in from the start, not bolted on later.",steps:["Chat interface over your own non-sensitive documents","Inline citations to source chunks","Refuse or hedge when evidence is missing","One improvement: reranking or query rewrite"]},
+ apply:["WORK::Point it at your team's process/method documents as an internal FAQ prototype"],
+ deliver:["Working assistant with demo, architecture diagram in README"],
+ res:[{t:"DeepLearning.AI — Retrieval Augmented Generation (free, ~1 hr)",u:"https://www.deeplearning.ai/courses/retrieval-augmented-generation"}],
+ quiz:[
+  {q:"Good RAG citation behavior means the assistant should:",o:["Always answer confidently even without supporting evidence","Ground answers in retrieved sources and say 'I don't know' when evidence is missing","Never cite sources to keep answers clean","Only cite the single most recent document"],c:1,e:"Honest refusal beats confident fabrication, every time."},
+  {q:"A common RAG failure mode is:",o:["Too much grounding","Retrieving irrelevant or poorly chunked context, causing the model to answer from bad evidence","Captioning images incorrectly","Overusing citations"],c:1,e:"Garbage retrieval in, garbage answer out — even with a perfect model."},
+  {q:"Reranking is used to:",o:["Change the model's temperature","Reorder initially retrieved candidates by a more precise relevance signal before generation","Compress the vector database","Translate queries automatically"],c:1,e:"A second, more expensive relevance pass on a smaller candidate set."},
+  {q:"Hallucination vs. retrieval failure:",o:["They are the same thing","Hallucination is the model inventing content; retrieval failure is the system fetching wrong/no evidence in the first place","Retrieval failure only happens with images","Hallucination cannot happen if RAG is used"],c:1,e:"Diagnosing which one occurred determines whether you fix the retriever or the prompt."},
+  {q:"Access control in a RAG system matters because:",o:["It slows down responses on purpose","Retrieval can surface documents a user shouldn't see if permissions aren't enforced","It's only relevant for public data","LLMs enforce permissions automatically"],c:1,e:"RAG has no built-in security model — you have to add it, a theme returning in Week 10."}
+ ]},
+
+{n:7,p:2,title:"Evaluation & Observability",goal:"Prove a system works, and prove a change made it better. Remains a major pillar.",time:"~12 hrs",career:"'How do you know it actually works' separates AI-solutions engineers from people who just wire up demos.",portfolio:"Eval report showing a measured improvement.",
+ learn:["UNDERSTAND::Level 1 — deterministic assertions/unit tests, fast and cheap","UNDERSTAND::Level 2 — LLM-as-judge, calibrated against your own human labels","UNDERSTAND::Level 3 — A/B testing, only once confident from Levels 1-2","UNDERSTAND::Regression testing when prompt/model/chunking changes","UNDERSTAND::Cost, latency, and tracing as part of the eval"],
+ practice:["Let the agent propose questions, but you write the ground truth","Run evals headless; optionally wire into GitHub Actions"],
+ build:{title:"Repeatable eval harness for the Week 6 assistant",desc:"One command runs the whole test set and prints a comparison.",steps:["40+ questions: answerable, unanswerable, adversarial","Automatic scoring plus a human-labeled sample","One report table: quality, cost, latency","3 recorded experiments (chunk size, prompt, model) with before/after deltas"]},
+ apply:["WORK::Define what 'good' means for one real work AI task, with a rubric a colleague would accept"],
+ deliver:["Eval report showing measured improvement from a real change"],
+ res:[{t:"Hamel Husain — Your AI Product Needs Evals (free)",u:"https://hamel.dev/blog/posts/evals/"},{t:"Maven — AI Evals for Engineers & PMs (paid, optional, only if you want a cohort experience)",u:"https://maven.com/parlance-labs/evals"}],
+ quiz:[
+  {q:"Level 1 evals (fast/cheap) typically look like:",o:["Full A/B tests with real users","Deterministic assertions/unit tests against known scenarios","Manual review of every single output","Fine-tuning the model"],c:1,e:"Start here — it's the cheapest signal and catches the most obvious regressions."},
+  {q:"An LLM-as-judge should be:",o:["Trusted blindly without checking","Calibrated against your own human-labeled examples to confirm it agrees with human judgment","Used only for image tasks","The very first and only eval you build"],c:1,e:"An uncalibrated judge can confidently agree with a wrong answer."},
+  {q:"Why run regression tests when you change a prompt or model?",o:["Regression tests are optional busywork","A change that helps one case can silently break another; regression tests catch that","They are only needed once per year","They replace the need for any other eval"],c:1,e:"This is exactly what your Week 7 project's '3 recorded experiments' exercise practices."},
+  {q:"A/B testing (Level 3) should generally happen:",o:["Before any other evaluation","After you've built confidence with cheaper unit tests and calibrated judges","Instead of unit tests","Only for pricing changes"],c:1,e:"A/B testing is the most expensive signal — earn your way to it."},
+  {q:"Tracking cost and latency alongside quality in evals matters because:",o:["A 'better' system that's too slow/expensive may not be viable in practice","Cost and latency are irrelevant to eval quality","Only quality matters, never ship considerations","Evals should never touch production data"],c:0,e:"A system judged only on accuracy can still be unshippable."}
+ ]},
+
+{n:8,p:3,title:"Agents, Tools & MCP",goal:"Understand the ladder from simple call to multi-agent system, and when NOT to climb it.",time:"~12 hrs",career:"Core FDE deliverable pattern — connecting AI to enterprise tools/data/APIs.",portfolio:"Agent repo with real trace logs.",
+ learn:["UNDERSTAND::Simple call -> tool calling -> workflow -> agent -> multi-agent, and when to stop climbing","UNDERSTAND::The think-act-observe loop, stopping conditions, budgets","UNDERSTAND::MCP: an open standard for connecting models to tools/data via reusable servers","UNDERSTAND::Tool/schema design quality drives reliability","UNDERSTAND::Human-in-the-loop approval, tool-error handling"],
+ practice:["Build a small MCP server and connect it to both Claude Code and Codex","Run the agent on a schedule in headless mode","Read its trace and fix the top failure via instructions"],
+ build:{title:"One genuinely useful multi-step agent",desc:"Not a toy example — a real deliverable pipeline with a human checkpoint.",steps:["Tools: file lookup, calculation, and one small API","Plan-and-execute loop with a step/cost budget","Research -> retrieve -> analyze -> produce deliverable -> request human approval before anything external is sent"]},
+ apply:["WORK::Point it at a real weekly reporting task"],
+ deliver:["Agent repo with trace logs from at least 3 runs"],
+ res:[{t:"modelcontextprotocol.io — build your first MCP server (free)",u:"https://modelcontextprotocol.io/docs/2026-07-28/develop/build-server"}],
+ quiz:[
+  {q:"The progression from simple call to multi-agent system should be climbed:",o:["Always to the top, agents are always better","Only as far as the task actually requires — simpler is better when it's sufficient","Only when told to by the model vendor","Randomly"],c:1,e:"Unnecessary agent complexity adds cost, latency, and failure surface for no benefit."},
+  {q:"A stopping condition in an agent loop exists to:",o:["Make responses longer","Prevent infinite or runaway loops by defining when the agent should stop acting","Disable tool calling","Increase token usage intentionally"],c:1,e:"Without one, a confused agent can loop indefinitely and burn budget."},
+  {q:"MCP (Model Context Protocol) is best described as:",o:["A new LLM architecture","An open standard for connecting models to external tools and data sources through reusable servers","A prompt engineering technique","A vector database"],c:1,e:"Reusable across Claude Code, Codex, and other MCP-compatible clients."},
+  {q:"Good tool schema design matters because:",o:["Schemas are ignored by the model","Clear names/descriptions/parameters directly affect how reliably the model chooses and calls the right tool","It only affects billing","It's purely cosmetic"],c:1,e:"A vague tool description leads to the model calling the wrong tool or with wrong arguments."},
+  {q:"Human-in-the-loop approval steps are especially important for:",o:["Any read-only, reversible action","Actions with real-world consequences (sending emails, spending money, deleting data)","Nothing, agents should always be fully autonomous","Only image generation"],c:1,e:"Your Week 8 project explicitly pauses for approval before anything external is sent."}
+ ]},
+
+{n:9,p:3,title:"Harness Engineering, Skills, Subagents & Computer Use",goal:"Build the reliable environment agents operate inside — not just the agent itself.",time:"~12 hrs",career:"This is what makes an agent trustworthy enough to hand to a client.",portfolio:"skills/ repo with README and demo video.",
+ learn:["UNDERSTAND::Harness engineering: guides (feedforward) vs. sensors (feedback)","UNDERSTAND::Three regulation dimensions: maintainability, architecture fitness, behavior","BUILD::Authoring a SKILL.md: what it's for, when it triggers, steps, helper scripts","UNDERSTAND::Subagents for context isolation and parallel work","UNDERSTAND::Hooks and guardrails; long-task progress files","UNDERSTAND::Computer/browser use — optional experiment only, not a mandatory project"],
+ practice:["Use a builder subagent and a review subagent on the same change","Confirm a long task resumes cleanly from a progress file","Note which parts of your harness mattered most"],
+ build:{title:"Extend the Week 8 agent with reusable skills",desc:"Turn the agent into a connected copilot.",steps:["Write 2-3 skills with SKILL.md files, testing that they trigger correctly","Add hooks: auto-run tests, block destructive commands","One more MCP connection","Make it portable: works for both Claude Code and Codex"]},
+ apply:["WORK::Encode one of your team's methods or templates as a skill","LIFE::Optional: one small computer-use experiment (e.g. reading your own screen for a task) — not a required build"],
+ deliver:["skills/ repo with README and demo video"],
+ res:[{t:"Martin Fowler / Birgitta Böckeler — Harness Engineering (free)",u:"https://martinfowler.com/articles/harness-engineering.html"}],
+ quiz:[
+  {q:"In harness engineering, \"guides\" are:",o:["Feedback checks after code is written","Feedforward controls that steer the agent before problems occur (e.g. coding-principle docs, language servers)","A type of vector database","Manual code reviews only"],c:1,e:"Guides act before generation; sensors act after."},
+  {q:"\"Sensors\" in a harness are:",o:["Feedforward instructions","Feedback controls that catch issues after generation (linters, tests, AI review)","Hardware components","A synonym for prompts"],c:1,e:"The complement to guides — catching what slipped through."},
+  {q:"Subagents are useful primarily for:",o:["Making the main agent slower on purpose","Isolating context for a subtask (e.g. research or review) so the main session stays focused","Replacing the need for any tools","Only image tasks"],c:1,e:"Keeps your main conversation's context clean while a subagent does focused work."},
+  {q:"A hook in an agentic coding tool typically:",o:["Is a UI decoration","Automatically runs an action (like tests) at a defined point, e.g. after an edit","Only works in headless mode","Deletes the agent's memory"],c:1,e:"Used in this week's project to auto-run tests and block destructive commands."},
+  {q:"Computer/browser use for an agent should generally be treated as:",o:["The default way to do everything","One capability among many, used when there's no better API/tool option available","Mandatory for every project","A replacement for MCP"],c:1,e:"Per your own scoping — an optional experiment here, not core to the roadmap."}
+ ]},
+
+{n:10,p:4,title:"Production AI & Enterprise AI",goal:"Make a system reliable, secure, and deployable in an enterprise context — the most under-covered gap for this pivot.",time:"~12 hrs",career:"Directly closes the gap between 'data scientist who uses AI' and 'engineer who can deploy AI at a client.'",portfolio:"Threat model doc, cost/observability dashboard screenshot.",
+ learn:["UNDERSTAND::Reliability: retries, fallbacks, rate limits, graceful degradation","UNDERSTAND::Security: prompt injection (direct + indirect), tool poisoning, excessive permissions, data exfiltration, least privilege","UNDERSTAND::Enterprise: authN/authZ, RBAC, SSO concepts, audit logs, data residency, PII, HIPAA-level thinking","UNDERSTAND::Operations: logging, tracing, monitoring, cost controls, model routing, caching, budgets"],
+ practice:["Ask the agent for a threat model, then verify it yourself","Add a GitHub Actions workflow for lint and evals"],
+ build:{title:"Harden an earlier project into a production-style POC",desc:"Take the Week 6 RAG assistant or Week 8 agent and make it trustworthy.",steps:["Structured logging and a cost dashboard","Budget guard with fallback logic","Prompt-injection test cases added to the Week 7 eval set","A basic threat model doc and a simple deployment"]},
+ apply:["WORK::Write a one-page risk-and-controls note for an AI tool at your workplace, applying HIPAA-level thinking given your pharma background"],
+ deliver:["Cost/observability dashboard screenshot, threat model document"],
+ res:[{t:"OWASP Top 10 for LLM Applications (free)",u:"https://owasp.org/www-project-top-10-for-large-language-model-applications/"}],
+ quiz:[
+  {q:"Least privilege for agent tool access means:",o:["Giving the agent full admin access always","Granting only the minimum permissions needed for the task","Disabling all tools","Giving every user the same access level"],c:1,e:"Limits the blast radius if the agent is tricked or makes a mistake."},
+  {q:"Indirect prompt injection is dangerous because:",o:["It only affects the developer's own prompts","Malicious instructions can be hidden in external content (web pages, documents) the agent processes","It requires physical access to the server","It only affects image models"],c:1,e:"Your Week 10 project explicitly adds injection test cases to the eval set for this reason."},
+  {q:"RBAC (role-based access control) is used to:",o:["Improve model accuracy","Restrict what actions/data a user or system can access based on their role","Speed up embeddings","Replace the need for logging"],c:1,e:"A core enterprise requirement any FDE-style deployment will run into."},
+  {q:"Logging and tracing every model call helps you:",o:["Nothing useful, it's just overhead","Debug failures, monitor cost/latency, and audit behavior over time","Bypass rate limits","Avoid needing evals"],c:1,e:"Observability and evals are complementary, not substitutes for each other."},
+  {q:"Data residency concerns are especially important when:",o:["All data and users are in one location with no regulations","Regulations (e.g. healthcare data) require data to stay within specific jurisdictions","Cloud providers handle it automatically in every case","Only for open-source models"],c:1,e:"Directly relevant to your pharma/healthcare-adjacent background."}
+ ]},
+
+{n:11,p:4,title:"AI Solutions Engineering & FDE (centerpiece week)",goal:"Practice the full lifecycle: business problem -> discovery -> AI-appropriateness -> architecture -> POC -> eval -> security -> deployment -> feedback -> impact.",time:"~14 hrs",career:"This week IS the career pivot — everything else fed into it.",portfolio:"Discovery doc, architecture doc, POC repo, demo video, results memo, job-gap analysis.",
+ learn:["APPLY::Customer discovery and requirements gathering","APPLY::Deciding whether AI is appropriate for a problem at all","APPLY::Use-case prioritization, feasibility, POC design, success metrics, ROI","APPLY::Enterprise constraints (SSO, compliance, data residency) in a POC","APPLY::Stakeholder communication, demo storytelling, deployment planning, incident response, product feedback loops"],
+ practice:["Use the agent as a rapid prototyper under a strict time box","Have the agent red-team your scoping document"],
+ build:{title:"Customer-style AI POC, strict time box",desc:"Use your pharma/data-science domain as the case study — your differentiator, not a generic software problem.",steps:["Discovery document + 10 discovery questions","Solution architecture + POC scope (goals, success metric, explicit out-of-scope)","Build in a 2-day time box","Risk assessment addressing at least one enterprise constraint","5-minute demo + one-page results memo"]},
+ apply:["WORK::Propose one real AI pilot to your manager or team, collect feedback","LIFE::Review 10 real AI Solutions Engineer / FDE job descriptions; extract recurring technical requirements, recurring business skills, and your actual gaps"],
+ deliver:["Discovery doc, architecture doc, POC repo, demo video, results memo, job-gap analysis"],
+ res:[{t:"Exponent/Aced — FDE interview prep (paid, worth it if interviewing within ~2 months)",u:"https://www.tryexponent.com/blog/what-is-a-forward-deployed-engineer"}],
+ quiz:[
+  {q:"In FDE-style discovery, the first priority is usually to:",o:["Start coding immediately","Uncover the real underlying business problem, not just the surface request","Choose the tech stack","Write the final invoice"],c:1,e:"Symptoms vs. root cause — the core discovery skill."},
+  {q:"A good POC scope explicitly defines:",o:["Nothing, scope should stay open-ended","Goals, success metrics, and what's explicitly out-of-scope","Only the demo date","The org chart of the client"],c:1,e:"Out-of-scope is as important as in-scope for a timeboxed POC."},
+  {q:"\"Completeness\" in FDE work refers to:",o:["Writing the longest possible code","Anticipating edge cases and how the solution could be misused or fail in the real world","Using every available AI model","Finishing before the deadline no matter the quality"],c:1,e:"A recurring theme distinguishing production-minded engineers from demo builders."},
+  {q:"Decomposition questions in FDE interviews test:",o:["Algorithmic trivia","Your ability to break an ambiguous, complex problem into a shippable plan","Typing speed","Knowledge of a specific programming language only"],c:1,e:"The most common FDE interview format, per current hiring guides."},
+  {q:"Enterprise constraints like SSO and data residency matter in a POC because:",o:["They're irrelevant until full production","Ignoring them early can make a promising POC undeployable later","They only apply to government clients","They are handled entirely by the client with no input needed"],c:1,e:"Why your Week 11 risk assessment explicitly addresses at least one enterprise constraint."}
+ ]},
+
+{n:12,p:4,title:"Capstone: Personal AI Operating Environment",goal:"Assemble a real, extensible personal AI environment — not a chatbot, not a tutorial trophy case.",time:"~14-16 hrs",career:"The single artifact you point an interviewer or LinkedIn viewer to.",portfolio:"v1.0 tagged repo, 3-minute demo, resume bullets, 90-day plan.",
+ learn:["UNDERSTAND::Portfolio narrative: problem -> approach -> evidence -> impact","UNDERSTAND::Presenting GitHub as evidence","UNDERSTAND::Planning the next 90 days"],
+ practice:["Use agents for docs, tests, cleanup, and release notes","Ask an agent to review the whole repo as a skeptical hiring manager and fix the top 5 issues"],
+ build:{title:"Personal AI Workspace v1 (reuses prior weeks' artifacts, not new work from scratch)",desc:"Architected so new agents/tools can be added later — not a closed one-off build.",steps:["1. AI learning dashboard (this tracker)","2. Daily AI/news intelligence agent (reuses Week 8 pattern)","3. Job-search intelligence (reuses Week 11's job-gap analysis, automated)","4. Personal knowledge base (reuses Weeks 5-6 retrieval work)","5. AI research tools","6. Agent/tool framework (reuses Weeks 8-9 skills/subagents)","7. Evaluation & observability foundation (reuses Weeks 7 and 10 work)"]},
+ apply:["WORK::Present the workspace to your team, collect feedback","LIFE::Use it weekly for a month, keep a changelog"],
+ deliver:["v1.0 tagged repo, 3-minute demo video, resume bullets tailored to top 2 target roles, 90-day plan with 15 target roles/companies"],
+ res:[],
+ quiz:[
+  {q:"A strong capstone portfolio narrative should communicate:",o:["\"I completed many unrelated tutorials\"","\"I can design, build, evaluate, and deploy AI solutions, leveraging real domain expertise\"","Only a list of certificates","Nothing about business impact"],c:1,e:"The narrative this whole roadmap has been building toward."},
+  {q:"Why architect the capstone so new agents/tools can be added later?",o:["It's not necessary, one-off builds are fine","It demonstrates ongoing, extensible engineering rather than a closed tutorial project","It reduces to a single Python script","It removes the need for evaluation"],c:1,e:"An interviewer can see it as a living system, not a finished homework assignment."},
+  {q:"What should a portfolio repo generally include beyond code?",o:["Nothing else is needed","README, architecture notes, demo, and evaluation results","Just a list of technologies used","A password-protected zip file"],c:1,e:"Matches the 'career portfolio requirements' set out at the start of this roadmap."},
+  {q:"A 90-day plan after the roadmap should primarily focus on:",o:["Forgetting everything learned","Targeted applications/networking toward specific roles, informed by the Week 11 gap analysis","Repeating Week 1 from scratch","Avoiding any further building"],c:1,e:"The roadmap builds the evidence; the 90-day plan is where you spend it."},
+  {q:"The capstone's evaluation/observability foundation should be:",o:["Skipped since it's just a personal project","Present, since it's the difference between a demo and something you'd trust","Only added if a client asks","Replaced by manual eyeballing only"],c:1,e:"Consistent with Week 7's core message: unmeasured systems don't improve reliably."}
+ ]}
+];
+
+/* ============ STATE ============ */
+const KEY="ai-cc-v1";
+let state={done:{},notes:{},quiz:{},reflect:{},start:"",theme:""};
+function load(){try{const s=JSON.parse(localStorage.getItem(KEY)||"null");if(s&&typeof s==="object")state=Object.assign(state,s);}catch(e){}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}}
+load();
+
+/* ============ HELPERS ============ */
+const $=(s,r=document)=>r.querySelector(s);
+const $$=(s,r=document)=>[...r.querySelectorAll(s)];
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+function itemIds(list,prefix,wn){return list.map((_,i)=>`w${wn}-${prefix}-${i}`);}
+function weekIds(w){
+  return [...itemIds(w.learn,"l",w.n),...itemIds(w.practice,"pr",w.n),...itemIds(w.build.steps,"b",w.n),...itemIds(w.apply,"ap",w.n)];
+}
+function weekCount(w){const ids=weekIds(w);const d=ids.filter(id=>state.done[id]).length;return{d,t:ids.length};}
+function quizScore(w){const qs=state.quiz[w.n];if(!qs)return null;const answered=Object.keys(qs).length;if(answered<w.quiz.length)return null;let correct=0;w.quiz.forEach((q,i)=>{if(qs[i]===q.c)correct++;});return{correct,total:w.quiz.length};}
+function currentWeek(){
+  if(!state.start)return 1;
+  const s=new Date(state.start+"T00:00:00");if(isNaN(s))return 1;
+  const diff=Math.floor((Date.now()-s.getTime())/(7*86400000))+1;
+  return diff<1?1:Math.min(diff,12);
+}
+function fmt(d){return d.toLocaleDateString(undefined,{month:"short",day:"numeric"});}
+
+/* ============ NAV ============ */
+$$(".navlink").forEach(b=>b.onclick=()=>{
+  $$(".navlink").forEach(x=>x.classList.toggle("active",x===b));
+  $$(".view").forEach(v=>v.classList.toggle("active",v.id==="view-"+b.dataset.view));
+  const titles={dashboard:["Dashboard","Your AI-native learning operating system"],roadmap:["12-Week Roadmap","Learn → Practice → Build → Apply, every week"],ladder:["Autonomy Ladder","Chat to headless automation"],cheat:["Concepts & Cheatsheet","Tokens, engineering layers, math intuition, skills"],roles:["Roles & Pivot","FDE and adjacent role comparison"]};
+  const t=titles[b.dataset.view];
+  $("#topTitle").textContent=t[0]; $("#topMeta").textContent=t[1];
+  $("#side").classList.remove("open");
+  window.scrollTo(0,0);
+});
+$("#menubtn").onclick=()=>$("#side").classList.toggle("open");
+
+/* ============ RENDER: ROADMAP ============ */
+function renderWeeks(){
+  const open=new Set($$("details.week[open]").map(d=>d.dataset.n));
+  const cur=currentWeek();
+  let html="",lastP=0;
+  WEEKS.forEach(w=>{
+    const c=weekCount(w),pct=c.t?Math.round(100*c.d/c.t):0,fin=c.d===c.t;
+    if(w.p!==lastP){lastP=w.p;const P=PHASES[w.p];html+=`<div class="phase-head"><span class="phase-dot" style="background:${P.color}"></span><h3>${esc(P.name)}</h3><span>${P.weeks}</span></div>`;}
+    const P=PHASES[w.p];
+    const isOpen=open.has(String(w.n))||(open.size===0&&w.n===cur);
+    const qs=quizScore(w);
+    html+=`<details class="week ${cur===w.n?"current":""}" data-n="${w.n}" ${isOpen?"open":""}>
+      <summary>
+        <div class="wk-badge" style="background:${P.color}">${w.n}</div>
+        <div class="wk-mid"><div class="t">${esc(w.title)}</div><div class="g">${esc(w.goal)}</div></div>
+        <div class="wk-right">
+          <div class="wk-time">${esc(w.time)}</div>
+          <div class="wk-prog"><small>${c.d}/${c.t} tasks</small><div class="pbar ${fin?"ok":""}"><i style="width:${pct}%"></i></div></div>
+          <span class="chev">&#9656;</span>
+        </div>
+      </summary>
+      <div class="wk-body">
+        <div class="wk-tabs" data-n="${w.n}">
+          <button class="wk-tab on" data-pane="learn">Learn</button>
+          <button class="wk-tab" data-pane="practice">Practice</button>
+          <button class="wk-tab" data-pane="build">Build</button>
+          <button class="wk-tab" data-pane="apply">Apply</button>
+          <button class="wk-tab" data-pane="ship">Ship &amp; Resources</button>
+          <button class="wk-tab" data-pane="quiz">Quiz ${qs?`(${qs.correct}/${qs.total})`:""}</button>
+        </div>
+
+        <div class="wk-pane on" data-pane="learn">
+          ${w.learn.map((s,i)=>{const {tag,text}=tagOf(s);const id=`w${w.n}-l-${i}`;const on=!!state.done[id];
+            return `<div class="li-row ${on?"done":""}"><input type="checkbox" data-id="${id}" ${on?"checked":""}><div class="li-text"><span class="chip ${tag.toLowerCase()}">${tag}</span> ${esc(text)}</div></div>`;}).join("")}
+        </div>
+        <div class="wk-pane" data-pane="practice">
+          ${w.practice.map((s,i)=>{const id=`w${w.n}-pr-${i}`;const on=!!state.done[id];
+            return `<div class="li-row ${on?"done":""}"><input type="checkbox" data-id="${id}" ${on?"checked":""}><div class="li-text">${esc(s)}</div></div>`;}).join("")}
+        </div>
+        <div class="wk-pane" data-pane="build">
+          <div class="proj-box"><b>${esc(w.build.title)}</b><p>${esc(w.build.desc)}</p></div>
+          ${w.build.steps.map((s,i)=>{const id=`w${w.n}-b-${i}`;const on=!!state.done[id];
+            return `<div class="li-row ${on?"done":""}"><input type="checkbox" data-id="${id}" ${on?"checked":""}><div class="li-text">${esc(s)}</div></div>`;}).join("")}
+        </div>
+        <div class="wk-pane" data-pane="apply">
+          ${w.apply.map((s,i)=>{const {tag,text}=tagOf(s);const id=`w${w.n}-ap-${i}`;const on=!!state.done[id];
+            return `<div class="li-row ${on?"done":""}"><input type="checkbox" data-id="${id}" ${on?"checked":""}><div class="li-text"><span class="chip apply">${tag}</span> ${esc(text)}</div></div>`;}).join("")}
+          <div class="meta-grid">
+            <div class="m"><b>Career relevance</b><span>${esc(w.career)}</span></div>
+            <div class="m"><b>Portfolio evidence</b><span>${esc(w.portfolio)}</span></div>
+          </div>
+        </div>
+        <div class="wk-pane" data-pane="ship">
+          <div class="deliver-box"><b>Ship to GitHub</b><ul style="margin:6px 0 0;padding-left:18px">${w.deliver.map(d=>`<li style="font-size:13px;margin:3px 0">${esc(d)}</li>`).join("")}</ul></div>
+          ${w.res.length?`<div class="section-title" style="margin-top:14px">Resources</div><ul class="res-list" style="padding-left:18px;margin:0">${w.res.map(r=>`<li><a href="${r.u}" target="_blank" rel="noopener">${esc(r.t)}</a>${r.note?`<div class="res-note">${esc(r.note)}</div>`:""}</li>`).join("")}</ul>`:""}
+          <div class="section-title" style="margin-top:14px">Notes</div>
+          <textarea class="notes" data-note="${w.n}" placeholder="What clicked, what broke, what to revisit">${esc(state.notes[w.n]||"")}</textarea>
+        </div>
+        <div class="wk-pane" data-pane="quiz">
+          ${renderQuiz(w)}
+        </div>
+      </div>
+    </details>`;
+  });
+  $("#weeks").innerHTML=html;
+}
+
+function renderQuiz(w){
+  const answers=state.quiz[w.n]||{};
+  let html=`<div class="quiz-wrap">`;
+  w.quiz.forEach((q,qi)=>{
+    const chosen=answers[qi];
+    html+=`<div class="qcard" data-w="${w.n}" data-q="${qi}"><div class="qn">${qi+1}. ${esc(q.q)}</div>`;
+    q.o.forEach((opt,oi)=>{
+      let cls="opt";
+      if(chosen!==undefined){
+        if(oi===q.c)cls+=" correct"; else if(oi===chosen)cls+=" wrong";
+      }
+      html+=`<label class="${cls}"><input type="radio" name="q-${w.n}-${qi}" value="${oi}" ${chosen===oi?"checked":""} ${chosen!==undefined?"disabled":""}><span>${esc(opt)}</span></label>`;
+    });
+    html+=`<div class="qexplain ${chosen!==undefined?"show":""}">${esc(q.e)}</div></div>`;
+  });
+  const done=Object.keys(answers).length;
+  let correct=0; w.quiz.forEach((q,i)=>{if(answers[i]===q.c)correct++;});
+  html+=`<div class="quiz-score">${done===w.quiz.length?`<b>Score: ${correct}/${w.quiz.length}</b>`:`<span style="color:var(--muted);font-size:13px">${done}/${w.quiz.length} answered</span>`}
+    ${done>0?`<button class="btn ghost" data-retake="${w.n}" style="font-size:12px">Retake</button>`:""}</div></div>`;
+  return html;
+}
+
+/* ============ RENDER: DASHBOARD ============ */
+function renderDashboard(){
+  const cur=currentWeek();
+  const w=WEEKS.find(x=>x.n===cur)||WEEKS[0];
+  const P=PHASES[w.p];
+  $("#dashWeekLabel").textContent=`Week ${w.n} · ${P.name}`;
+  $("#dashWeekTitle").textContent=w.title;
+  $("#dashWeekGoal").textContent=w.goal;
+  const c=weekCount(w),pct=c.t?Math.round(100*c.d/c.t):0;
+  $("#dashWeekPct").textContent=pct+"%";
+
+  let strip="";
+  WEEKS.forEach(wk=>{
+    const cc=weekCount(wk),p=cc.t?Math.round(100*cc.d/cc.t):0;
+    const col=p===0?"var(--line)":PHASES[wk.p].color;
+    const op=p===0?1:(0.35+0.65*(p/100));
+    strip+=`<button data-jump="${wk.n}" class="${wk.n===cur?"cur":""}" style="background:${col};opacity:${op}" title="Week ${wk.n}: ${p}%"><b>${wk.n}</b></button>`;
+  });
+  $("#dashStrip").innerHTML=strip;
+
+  const kanCols=[["learn","Learn",w.learn.map((s,i)=>({id:`w${w.n}-l-${i}`,...tagOf(s)}))],
+    ["practice","Practice",w.practice.map((s,i)=>({id:`w${w.n}-pr-${i}`,tag:"",text:s}))],
+    ["build","Build",w.build.steps.map((s,i)=>({id:`w${w.n}-b-${i}`,tag:"",text:s}))],
+    ["apply","Apply",w.apply.map((s,i)=>({id:`w${w.n}-ap-${i}`,...tagOf(s)}))]];
+  $("#dashKanban").innerHTML=kanCols.map(([cls,label,items])=>{
+    const done=items.filter(it=>state.done[it.id]).length;
+    return `<div class="card kcol k-${cls}"><h4>${label}<span class="n">${done}/${items.length}</span></h4>
+      ${items.map(it=>{const on=!!state.done[it.id];return `<div class="li-row ${on?"done":""}"><input type="checkbox" data-id="${it.id}"><div class="li-text" style="font-size:12.5px">${esc(it.text)}</div></div>`;}).join("")}
+    </div>`;
+  }).join("");
+
+  const qs=quizScore(w);
+  $("#dashQuizSummary").textContent = qs? `You scored ${qs.correct}/${qs.total} on this week's quiz.` : "Complete the week's work, then test yourself.";
+  $("#dashQuizBtn").onclick=()=>{ jumpToWeek(w.n,"quiz"); };
+
+  $("#dashReflection").value = state.reflect[w.n]||"";
+}
+
+function jumpToWeek(n,pane){
+  $$(".navlink").forEach(x=>x.classList.toggle("active",x.dataset.view==="roadmap"));
+  $$(".view").forEach(v=>v.classList.toggle("active",v.id==="view-roadmap"));
+  $("#topTitle").textContent="12-Week Roadmap"; $("#topMeta").textContent="Learn → Practice → Build → Apply, every week";
+  renderWeeks();
+  requestAnimationFrame(()=>{
+    const det=$(`details.week[data-n="${n}"]`);
+    if(det){ det.open=true; if(pane){ $$('.wk-tab',det).forEach(t=>t.classList.toggle("on",t.dataset.pane===pane)); $$('.wk-pane',det).forEach(p=>p.classList.toggle("on",p.dataset.pane===pane)); } det.scrollIntoView({behavior:"smooth",block:"start"}); }
+  });
+}
+
+/* ============ RENDER: SIDEBAR STATS ============ */
+function renderStats(){
+  let d=0,t=0,wf=0,qcSum=0,qcN=0;
+  WEEKS.forEach(w=>{const c=weekCount(w);d+=c.d;t+=c.t;if(c.d===c.t)wf++;const qs=quizScore(w);if(qs){qcSum+=qs.correct/qs.total;qcN++;}});
+  const pct=t?Math.round(100*d/t):0;
+  $("#sideDone").textContent=`${d}/${t}`;
+  $("#ringPct").textContent=pct+"%";
+  const circumference=138; $("#ringFg").style.strokeDashoffset=circumference-(circumference*pct/100);
+  $("#gAll").style.width=pct+"%"; $("#gAllVal").textContent=pct+"%";
+  $("#gWeeks").style.width=(wf/12*100)+"%"; $("#gWeeksVal").textContent=`${wf}/12`;
+  if(qcN>0){const avg=Math.round(100*qcSum/qcN);$("#gQuiz").style.width=avg+"%";$("#gQuizVal").textContent=avg+"%";}
+  else{$("#gQuiz").style.width="0%";$("#gQuizVal").textContent="-";}
+
+  if(state.start){
+    const s=new Date(state.start+"T00:00:00");
+    if(!isNaN(s)){
+      const days=Math.floor((Date.now()-s.getTime())/86400000);
+      $("#streakLine").textContent = days<0? `Starts ${fmt(s)}` : `Day ${days+1} · Week ${currentWeek()} of 12`;
+    }
+  } else { $("#streakLine").textContent="Set a start date to begin tracking"; }
+}
+
+function refreshAll(){ renderWeeks(); renderDashboard(); renderStats(); }
+
+/* ============ EVENTS ============ */
+document.addEventListener("change",e=>{
+  const t=e.target;
+  if(t.matches('input[type=checkbox][data-id]')){
+    state.done[t.dataset.id]=t.checked; if(!t.checked)delete state.done[t.dataset.id];
+    save(); refreshAll();
+  }
+  if(t.matches('textarea[data-note]')){ state.notes[t.dataset.note]=t.value; save(); }
+  if(t.id==="dashReflection"){ const cur=currentWeek(); state.reflect[cur]=t.value; save(); }
+  if(t.matches('input[type=radio][name^="q-"]')){
+    const [_,wn,qi]=t.name.split("-");
+    if(!state.quiz[wn])state.quiz[wn]={};
+    state.quiz[wn][qi]=parseInt(t.value,10);
+    save();
+    const det=$(`details.week[data-n="${wn}"]`); const openPanes=det?$$('.wk-pane.on',det).map(p=>p.dataset.pane):[];
+    renderWeeks(); renderStats(); renderDashboard();
+    const det2=$(`details.week[data-n="${wn}"]`); if(det2){ det2.open=true; if(openPanes.length){ $$('.wk-tab',det2).forEach(tb=>tb.classList.toggle("on",openPanes.includes(tb.dataset.pane))); $$('.wk-pane',det2).forEach(p=>p.classList.toggle("on",openPanes.includes(p.dataset.pane))); } }
+  }
+});
+document.addEventListener("click",e=>{
+  const tab=e.target.closest(".wk-tab");
+  if(tab){ const wrap=tab.closest(".wk-body"); $$(".wk-tab",wrap).forEach(b=>b.classList.toggle("on",b===tab)); $$(".wk-pane",wrap).forEach(p=>p.classList.toggle("on",p.dataset.pane===tab.dataset.pane)); }
+  const retake=e.target.closest("[data-retake]");
+  if(retake){ const wn=retake.dataset.retake; delete state.quiz[wn]; save(); refreshAll(); const det=$(`details.week[data-n="${wn}"]`); if(det){det.open=true; $$('.wk-tab',det).forEach(b=>b.classList.toggle("on",b.dataset.pane==="quiz")); $$('.wk-pane',det).forEach(p=>p.classList.toggle("on",p.dataset.pane==="quiz"));} }
+  const jump=e.target.closest("[data-jump]");
+  if(jump){ jumpToWeek(parseInt(jump.dataset.jump,10)); }
+});
+$("#expand").onclick=()=>$$("details.week").forEach(d=>d.open=true);
+$("#collapse").onclick=()=>$$("details.week").forEach(d=>d.open=false);
+$("#start").addEventListener("change",e=>{ state.start=e.target.value; save(); refreshAll(); });
+$("#start").value=state.start||"";
+
+function applyTheme(){ if(state.theme)document.documentElement.setAttribute("data-theme",state.theme); else document.documentElement.removeAttribute("data-theme"); }
+$("#theme").onclick=()=>{ const dark=state.theme?state.theme==="dark":window.matchMedia("(prefers-color-scheme: dark)").matches; state.theme=dark?"light":"dark"; save(); applyTheme(); };
+$("#export").onclick=()=>{ const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"}); const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="ai-command-center-progress.json"; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); };
+$("#import").addEventListener("change",e=>{
+  const f=e.target.files[0]; if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{ try{ const s=JSON.parse(r.result); if(s&&typeof s==="object"){ state=Object.assign({done:{},notes:{},quiz:{},reflect:{},start:"",theme:""},s); save(); $("#start").value=state.start||""; applyTheme(); refreshAll(); } }catch(err){ alert("Could not read that file."); } };
+  r.readAsText(f); e.target.value="";
+});
+$("#reset").onclick=()=>{ if(!confirm("Reset all progress, notes, quiz answers, and the start date?"))return; state={done:{},notes:{},quiz:{},reflect:{},start:"",theme:state.theme}; save(); $("#start").value=""; refreshAll(); };
+
+applyTheme(); refreshAll();
+</script>
+</body>
+</html>
